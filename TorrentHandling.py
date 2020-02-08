@@ -29,8 +29,10 @@ month_dict={'Jan':1,
             'Dec':12
             }
 
-logger = "/home/pi/bin/automated_logger.log"
-open_subtitles_script_path ='/home/pi/bin/OpenSubtitlesDownload.py'
+# will be used for logging info
+logger = "/home/pi/.local/bin/torrentHandling/automated_logger.log"
+#realpat to OpenSubtitlesDownload.py script
+open_subtitles_script_path ='/home/pi/.local/bin/OpenSubtitlesDownload.py'
 
 def _get_torrents_id_list():
     '''
