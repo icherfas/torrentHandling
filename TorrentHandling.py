@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 '''
 Created by: Itai Cherfas
@@ -30,7 +30,7 @@ month_dict={'Jan':1,
             }
 
 # will be used for logging info
-logger = "/home/pi/.local/bin/torrentHandling/automated_logger.log"
+logger = "/home/pi/automated_logger.log"
 #realpat to OpenSubtitlesDownload.py script
 open_subtitles_script_path ='/home/pi/.local/bin/OpenSubtitlesDownload.py'
 
@@ -112,13 +112,11 @@ def download_subs_for_last_finished_torrent():
             break
     f.close()
     # download the proper subtitles
-    import pdb;pdb.set_trace()
     name = name.strip('\n')
-    os.system('{open_subs_script} -a {path_to_folder} >> {logger} '.format(open_subs_script=open_subtitles_script_path,path_to_folder=location + name, logger=logger))
+    os.system('{open_subs_script} -a {path_to_folder} -l eng -l heb >> {logger} '.format(open_subs_script=open_subtitles_script_path,path_to_folder=location + name, logger=logger))
 
 
 def main():
-    os.system('rm {logger}'.format(logger=logger))
     os.system('echo "started running at: {time}" >>{logger}'.format(time=dt.now(),logger=logger))
     download_subs_for_last_finished_torrent()
     clean_finished_torrents()
