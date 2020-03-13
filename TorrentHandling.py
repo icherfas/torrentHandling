@@ -30,9 +30,9 @@ month_dict={'Jan':1,
             }
 
 # will be used for logging info
-logger = "/home/pi/automated_logger.log"
+logger = "/home/icherfas/automated_logger.log"
 #realpat to OpenSubtitlesDownload.py script
-open_subtitles_script_path ='/home/pi/.local/bin/OpenSubtitlesDownload.py'
+open_subtitles_script_path ='/home/icherfas/generalScripts/OpenSubtitlesDownload.py'
 
 def _get_torrents_id_list():
     '''
@@ -97,7 +97,7 @@ def download_subs_for_last_finished_torrent():
     id_to_handle = max(tr_date_time_id.items(), key=operator.itemgetter(1))[0]
 
     # create the info of that id and get name and location
-    #example: '   Name:  The Incredibles 2 2018 1080p BluRay x264 DTS 5.1 MSubS - Hon3yHD'
+    #example: '   Name:  The Incredibles 2 2018 1080p (10Bit) BluRay x264 DTS 5.1 MSubS - Hon3yHD'
     #example: '   Location: /home/pi/Tv-Shows/Greys-Anatomy/s16'
     os.system('transmission-remote -t {id} -i > /tmp/tr.info'.format(id=id_to_handle))
     f=open('/tmp/tr.info','r')
@@ -107,6 +107,8 @@ def download_subs_for_last_finished_torrent():
         if 'Name' in line:
             name = line.split(':')[1][1:]
             name = name.replace(' ',"\ ")
+            name = name.replace('(',"\(")
+            name = name.replace(')',"\)")
         if 'Location' in line:
             location = line.split(':')[1].strip() + '/'
             break
@@ -118,6 +120,7 @@ def download_subs_for_last_finished_torrent():
 
 def main():
     os.system('echo "started running at: {time}" >>{logger}'.format(time=dt.now(),logger=logger))
+    import pdb;pdb.set_trace()
     download_subs_for_last_finished_torrent()
     clean_finished_torrents()
     os.system('echo "finished running at: {time}" >>{logger}'.format(time=dt.now(),logger=logger))
