@@ -120,7 +120,6 @@ def download_subs_for_last_finished_torrent():
 
 def main():
     os.system('echo "started running at: {time}" >>{logger}'.format(time=dt.now(),logger=logger))
-    import pdb;pdb.set_trace()
     download_subs_for_last_finished_torrent()
     clean_finished_torrents()
     os.system('echo "finished running at: {time}" >>{logger}'.format(time=dt.now(),logger=logger))
