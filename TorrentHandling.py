@@ -13,6 +13,7 @@ import os
 from  datetime import datetime as dt
 import operator
 import argparse
+import re
 
 #dict month of number
 month_dict={'Jan':1,
@@ -31,8 +32,10 @@ month_dict={'Jan':1,
 
 # will be used for logging info
 logger = "/home/icherfas/automated_logger.log"
-#realpat to OpenSubtitlesDownload.py script
-open_subtitles_script_path ='/home/icherfas/generalScripts/OpenSubtitlesDownload.py'
+# realpatt to general script folder.
+general_script_folder ='/home/icherfas/generalScripts/'
+# tv shows base folder
+tv_shows = '/home/icherfas/shared_storage/TV-Shows/'
 
 def _get_torrents_id_list():
     '''
@@ -51,7 +54,7 @@ def _get_torrents_id_list():
     f.close()
     return tr_ids
 
-def clean_finished_torrents():
+def clean_finished_seeding_torrents():
     '''
     this function will search the list of torrents for the ones that finished seeding and delete them(keeping the files)
     '''
@@ -72,9 +75,46 @@ def clean_finished_torrents():
         os.system('echo "removing torrent {tr}" >> {logger}'.format(tr=tr_id_name_dict[key],logger=logger))
         os.system('transmission-remote -t {id} -r >> {logger}'.format(id=key, logger=logger))
 
-def download_subs_for_last_finished_torrent():
+def download_subs_a_torrent(tr_id, name, location):
     '''
-    this function will go over all the torrents in transmission, get the latest torrent id and download subtitles for it from opensubtitle
+    this function will download subtitles for a given transmission id from opensubtitle
+    args:
+        tr_id - id as in transmission
+        name - torrent name as in torrent info
+        location - folder as in torront info
+    '''
+    os.system('{open_subs_script} -a {path_to_folder} -l eng -l heb >> {logger} '.format(open_subs_script=general_script_folder + 'OpenSubtitlesDownload.py',path_to_folder=location + name, logger=logger))
+
+def arrange_torrent(tr_id, name, location):
+    '''
+    this function will move a given tr_id to the proper folder - movie or episode
+    args:
+        tr_id - id as in transmission
+        name - torrent name as in torrent info
+        location - folder as in torront info
+    return:
+        torrent location - might change if the torrent was an episode
+    '''
+    #regex pattern to catch tv episodes
+    pattern = '[sS]\d{1,2}[eE]\d{1,2}'
+    if re.search(pattern, name):
+        #catch show name
+        pt_name = '(^\D+).[sS]\d{1,2}'
+        result = re.search(pt_name, name).group(1)
+        # in case of delimiter between words is dot or space, replace all to '_' and put it in lower case
+        result = result.replace(' ', '_').replace('.', '_').lower()
+        new_location = tv_shows + result
+        os.system('transmission-remote -t {tr_id} --move {new_location} >> {logger}'.format( tr_id = tr_id, logger = logger, new_location = new_location))
+        os.system('transmission-remote -t {tr_id} -i | grep Name >> {logger}'.format(tr_id = tr_id, logger = logger))
+        os.system('echo moved to {new_location} >> {logger}'.format(new_location = new_location, logger = logger))
+        location = new_location + '/'
+    else:
+        os.system('echo "not a tv episode." >> {logger}'.format(logger=logger))
+    return location
+
+def get_last_torrent_id():
+    '''
+    this function will go over all the torrents in transmission and return its transmission id
     '''
     tr_ids = _get_torrents_id_list()
     tr_date_time_id = {}
@@ -94,40 +134,47 @@ def download_subs_for_last_finished_torrent():
                 break
     f.close()
     # get id of latest (biggest) date
-    id_to_handle = max(tr_date_time_id.items(), key=operator.itemgetter(1))[0]
+    return max(tr_date_time_id.items(), key=operator.itemgetter(1))[0]
 
+def get_torrent_name_and_folder(tr_id):
+    '''
+    this function will return the torrent name and containing folder for a given tr_id
+    '''
     # create the info of that id and get name and location
     #example: '   Name:  The Incredibles 2 2018 1080p (10Bit) BluRay x264 DTS 5.1 MSubS - Hon3yHD'
     #example: '   Location: /home/pi/Tv-Shows/Greys-Anatomy/s16'
-    os.system('transmission-remote -t {id} -i > /tmp/tr.info'.format(id=id_to_handle))
+    os.system('transmission-remote -t {id} -i > /tmp/tr.info'.format(id=tr_id))
     f=open('/tmp/tr.info','r')
     name = ""
     location = ""
     for line in f:
         if 'Name' in line:
-            name = line.split(':')[1][1:]
-            name = name.replace(' ',"\ ")
-            name = name.replace('(',"\(")
-            name = name.replace(')',"\)")
+            name = line.split(':')[1][1:].replace(')',"\)").replace(' ',"\ ").replace('(',"\(")
         if 'Location' in line:
             location = line.split(':')[1].strip() + '/'
             break
     f.close()
     # download the proper subtitles
     name = name.strip('\n')
-    os.system('{open_subs_script} -a {path_to_folder} -l eng -l heb >> {logger} '.format(open_subs_script=open_subtitles_script_path,path_to_folder=location + name, logger=logger))
+    return name, location
 
-
-def main():
+def main(args):
     os.system('echo "started running at: {time}" >>{logger}'.format(time=dt.now(),logger=logger))
-    download_subs_for_last_finished_torrent()
-    clean_finished_torrents()
+    if args.debug:
+        import pdb;pdb.set_trace()
+    tr_id = get_last_torrent_id()
+    tr_name, tr_location = get_torrent_name_and_folder(tr_id)
+    tr_location = arrange_torrent(tr_id, tr_name, tr_location)
+    download_subs_a_torrent(tr_id, tr_name, tr_location)
+    clean_finished_seeding_torrents()
     os.system('echo "finished running at: {time}" >>{logger}'.format(time=dt.now(),logger=logger))
     #send_email()
     exit(0)
 
 if __name__ == '__main__':
-    argparse.ArgumentParser(prog='TorrentHandleing.py',
-                            description='Automatically download subtitles for latest torrent, delete finished seeding torrents and get a mail with the info!',
+    parser = argparse.ArgumentParser(prog='TorrentHandleing.py',
+                            description='Automatically move tv episodes to: {tv}\nDownload subtitles for latest torrent completed\nDelete finished seeding torrents\nSend an email with the info'.format(tv=tv_shows),
                             formatter_class=argparse.RawTextHelpFormatter)
-    main()
+    parser.add_argument('--debug', help='this will ivoke pdb while running')
+    args = parser.parse_args()
+    main(args)
