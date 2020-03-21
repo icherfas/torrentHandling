@@ -1,2 +1,5 @@
 # torrentHandling
-Auto download subs and removing finished seeding torrents in transmission
+Automatically move tv episodes to a pre-defined location (arrange by tv-show)
+Download eng and heb subtitles for latest torrent completed
+Delete finished seeding torrents
+
