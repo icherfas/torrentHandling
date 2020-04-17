@@ -31,11 +31,11 @@ month_dict={'Jan':1,
             }
 
 # will be used for logging info
-logger = "/home/icherfas/automated_logger.log"
-# realpatt to general script folder.
-general_script_folder ='/home/icherfas/generalScripts/'
+logger = "/home/pi/automated_logger.log"
+# realpath to general script folder.
+general_script_folder ='/home/pi/generalScripts/'
 # tv shows base folder
-tv_shows = '/home/icherfas/shared_storage/TV-Shows/'
+tv_shows = '/home/pi/Shared_Storage/TV-Shows/'
 
 def _get_torrents_id_list():
     '''
